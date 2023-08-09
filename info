@@ -1,0 +1,14 @@
+python -m venv tray-folder\venv
+
+[to activate venv]
+venv\Scripts\activate.bat
+
+[to desactivateactivate venv]
+venv\Scripts\desactivate.bat
+
+pip freeze > requirements.txt
+
+pip install -r requirements.txt
+
+
+
