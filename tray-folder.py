@@ -1,12 +1,11 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction, QMainWindow
-from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QPoint
-from PyQt5.QtCore import Qt, QPoint, QEvent
-from PyQt5.QtWidgets import QWidgetAction, QLabel
-from PyQt5.QtWidgets import QVBoxLayout, QWidget
-
 import os
+
+from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QMainWindow
+from PyQt6.QtWidgets import QLabel, QWidgetAction, QVBoxLayout, QWidget
+from PyQt6.QtGui import QIcon, QAction
+from PyQt6.QtCore import QPoint
+from PyQt6.QtCore import Qt, QEvent
 
 
 class SystemTrayApp(QMainWindow):
@@ -62,8 +61,8 @@ class SystemTrayApp(QMainWindow):
         label = QLabel("TRAYFOLDER")
         
         # Adjusting font size and centering text
-        label.setStyleSheet("background-color: transparent; color: #EEE; padding: 2px; font-size: 14px;")
-        label.setAlignment(Qt.AlignCenter)  # This ensures the label is centered
+        label.setStyleSheet("background-color: transparent; color: #EEE; padding: 1px; font-size: 12px;")
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)  # This ensures the label is centered
         
         layout.addWidget(label)
         title_container.setLayout(layout)
@@ -89,7 +88,7 @@ class SystemTrayApp(QMainWindow):
     
 
     def eventFilter(self, source, event):
-        if (event.type() == QEvent.Close and isinstance(source, QMenu)):
+        if (event.type() == QEvent.Type.Close and isinstance(source, QMenu)):
             print("Context menu closed!")
             # Reset icon and menu_visible flag
             self.icon_state = 0 
@@ -101,7 +100,7 @@ class SystemTrayApp(QMainWindow):
 
 
     def on_tray_icon_activated(self, reason):
-        if reason == QSystemTrayIcon.Trigger:
+        if reason == QSystemTrayIcon.ActivationReason.Trigger:
             # Toggle icon
             self.icon_state = 0 if self.menu_visible else 1
             self.tray_icon.setIcon(QIcon(self.icons[self.icon_state]))
@@ -128,6 +127,6 @@ class SystemTrayApp(QMainWindow):
             print("Error in open_item:", e)
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
+    app = QApplication([]) 
     window = SystemTrayApp("D:\@Portable\[EXTRAFILES]\[shortcuts]")
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
