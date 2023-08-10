@@ -3,23 +3,10 @@ from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction, QMain
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QPoint
 from PyQt5.QtCore import Qt, QPoint, QEvent
-
+from PyQt5.QtWidgets import QWidgetAction, QLabel
+from PyQt5.QtWidgets import QVBoxLayout, QWidget
 
 import os
-
-class CustomMenu(QMenu):
-  
-    def __init__(self, parent, icons, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.parent = parent
-        self.icons = icons
-
-    def hideEvent(self, event):
-        # Toggle the icon when the menu is closed
-        # self.parent.icon_state = 0
-        # self.parent.tray_icon.setIcon(QIcon(self.icons[self.parent.icon_state]))     
-        # self.menu_visible = False
-        super().hideEvent(event)
 
 
 class SystemTrayApp(QMainWindow):
@@ -65,10 +52,24 @@ class SystemTrayApp(QMainWindow):
                                        
         """)
 
-        # Add title to the menu
-        title_action = QAction("Tray-Folder", self)
-        title_action.setEnabled(False)
-        menu.addAction(title_action)
+
+        # Add title to the menu using QWidgetAction with a QLabel
+        title_widget = QWidgetAction(self)
+        
+        # Creating a custom widget for the title
+        title_container = QWidget()
+        layout = QVBoxLayout()
+        label = QLabel("TRAYFOLDER")
+        
+        # Adjusting font size and centering text
+        label.setStyleSheet("background-color: transparent; color: #EEE; padding: 2px; font-size: 14px;")
+        label.setAlignment(Qt.AlignCenter)  # This ensures the label is centered
+        
+        layout.addWidget(label)
+        title_container.setLayout(layout)
+        
+        title_widget.setDefaultWidget(title_container)
+        menu.addAction(title_widget)
         menu.addSeparator()
 
         for item in os.listdir(self.folder_path):
@@ -84,45 +85,47 @@ class SystemTrayApp(QMainWindow):
         quit_action.setToolTip("Close the application")
         quit_action.triggered.connect(app.quit)
         menu.addAction(quit_action)
-
-        self.tray_icon.setContextMenu(menu)
+        return menu
+    
 
     def eventFilter(self, source, event):
         if (event.type() == QEvent.Close and isinstance(source, QMenu)):
             print("Context menu closed!")
-            # We can add more actions here if necessary
-            
-        return super(SystemTrayApp, self).eventFilter(source, event)    
+            # Reset icon and menu_visible flag
+            self.icon_state = 0 
+            self.tray_icon.setIcon(QIcon(self.icons[self.icon_state]))
+            self.menu_visible = False
+            self.tray_icon.setContextMenu(None)  # Clearing the context menu for good measure
+        return super(SystemTrayApp, self).eventFilter(source, event)
+    
 
 
     def on_tray_icon_activated(self, reason):
         if reason == QSystemTrayIcon.Trigger:
             # Toggle icon
-            self.icon_state = 1 - self.icon_state
+            self.icon_state = 0 if self.menu_visible else 1
             self.tray_icon.setIcon(QIcon(self.icons[self.icon_state]))
-            
+
             # Toggle context menu
             if self.menu_visible:
-                # Hide menu (there's no direct way to hide, so we'll deactivate it)
                 self.tray_icon.setContextMenu(None)
                 self.menu_visible = False
-                print('clicked')
             else:
-                # Show menu
-                self.build_tray_menu()
+                menu = self.build_tray_menu()
+                self.tray_icon.setContextMenu(menu)
 
                 # Adjusting the position to make the context menu popup above the tray icon
-                menu_height = self.tray_icon.contextMenu().sizeHint().height()
+                menu_height = menu.sizeHint().height()
                 x_position = self.tray_icon.geometry().x()
                 y_position = self.tray_icon.geometry().y() - menu_height
-                self.tray_icon.contextMenu().popup(QPoint(x_position, y_position))
-                
+                menu.popup(QPoint(x_position, y_position))
                 self.menu_visible = True
-        
-        
 
     def open_item(self, item):
-        os.startfile(os.path.join(self.folder_path, item))
+        try:
+            os.startfile(os.path.join(self.folder_path, item))
+        except Exception as e:
+            print("Error in open_item:", e)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
