@@ -2,17 +2,13 @@ import sys
 import os
 from datetime import datetime
 import logging
-from link_checker import is_link_to_directory
-
+from shortcut_checker import is_link_to_directory, is_link_broken
 from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QMainWindow
 from PyQt6.QtWidgets import QLabel, QWidgetAction, QVBoxLayout, QWidget
 from PyQt6.QtGui import QIcon, QAction
 from PyQt6.QtCore import QPoint
 from PyQt6.QtCore import Qt, QEvent
 
-# Create the "logs" directory if it doesn't exist
-if not os.path.exists("logs"):
-    os.makedirs("logs")
 
 # Set up logging
 logging.basicConfig(
@@ -26,6 +22,14 @@ logging.basicConfig(
         logging.StreamHandler(),
     ],
 )
+
+# Create the "logs" directory if it doesn't exist
+try:
+    if not os.path.exists("logs"):
+        os.makedirs("logs")
+except Exception as e:
+    logging.error("Error creating 'logs' directory:", e)
+
 
 
 class SystemTrayApp(QMainWindow):
@@ -41,11 +45,15 @@ class SystemTrayApp(QMainWindow):
         self.hide()
 
         # Create system tray icon
-        self.tray_icon = QSystemTrayIcon(self)
-        self.tray_icon.setIcon(QIcon(self.icons[self.icon_state]))
-        self.tray_icon.activated.connect(self.on_tray_icon_activated)
-        self.build_tray_menu()
-        self.tray_icon.show()
+        try:
+            self.tray_icon = QSystemTrayIcon(self)
+            self.tray_icon.setIcon(QIcon(self.icons[self.icon_state]))
+            self.tray_icon.activated.connect(self.on_tray_icon_activated)
+            self.build_tray_menu()
+            self.tray_icon.show()
+        except Exception as e:
+            logging.error("Error initializing tray icon:", e)
+
 
     def build_tray_menu(self):
         menu = QMenu()
@@ -92,31 +100,40 @@ class SystemTrayApp(QMainWindow):
         title_widget.setDefaultWidget(title_container)
         menu.addAction(title_widget)
         menu.addSeparator()
+        logging.info(f"//scanning directory {self.folder_path}")
+        try:
+            for item in os.listdir(self.folder_path):
+                item_path = os.path.join(self.folder_path, item)
+                item_name_without_extension = os.path.splitext(item)[0]
 
-        for item in os.listdir(self.folder_path):
-            item_path = os.path.join(self.folder_path, item)
-            item_name_without_extension = os.path.splitext(item)[0]
+                if item.endswith(".lnk"):
+                    # Checks if the shortcut points to a directory
+                    if is_link_to_directory(item_path):
+                        logging.info(f"link shorcut directory : {item_path}")
+                        icon_path = "assets/folder.png"  # or any other icon you'd prefer for file shortcuts
+                    else :
+                        if is_link_broken(item_path):
+                            logging.info(f"broken shorcut file : {item_path}")
+                            icon_path = "assets/broken_shortcut.png"
+                        else:
+                            logging.info(f"link shorcut file : {item_path}")
+                            icon_path = "assets/circle.png"  # or any other icon you'd prefer for file shortcuts
 
-            if item.endswith(".lnk"):
-                # Checks if the shortcut points to a directory
-                if is_link_to_directory(item_path):
-                    logging.info(f"link shorcut directory : {item_path}")
+                elif os.path.isdir(item_path):
+                    logging.info(f"real directory not file : {item_path}")
                     icon_path = "assets/folder.png"
                 else:
-                    logging.info(f"link shorcut file : {item_path}")
-                    icon_path = "assets/circle.png"  # or any other icon you'd prefer for file shortcuts
+                    logging.info(f"real file : {item_path}")
+                    icon_path = "assets/circle.png"
 
-            elif os.path.isdir(item_path):
-                icon_path = "assets/folder.png"
-            else:
-                icon_path = "assets/circle.png"
+                item_action = QAction( QIcon(icon_path), item_name_without_extension, self)
+                item_action.setToolTip(f"Open {item_name_without_extension}")
+                item_action.triggered.connect(lambda checked, item=item: self.open_item(item))
+                menu.addAction(item_action)
+            menu.addSeparator()
+        except Exception as e:
+            logging.error(f"Error listing items in directory {self.folder_path}:", e)
 
-            item_action = QAction( QIcon(icon_path), item_name_without_extension, self)
-            item_action.setToolTip(f"Open {item_name_without_extension}")
-            item_action.triggered.connect(lambda checked, item=item: self.open_item(item))
-            menu.addAction(item_action)
-
-        menu.addSeparator()
 
         quit_action = QAction(QIcon("assets/exit.png"), "Quit", self)
         quit_action.setToolTip("Close the application")
@@ -163,11 +180,15 @@ class SystemTrayApp(QMainWindow):
         try:
             os.startfile(os.path.join(self.folder_path, item))
         except Exception as e:
-            logging.error("Error in open_item:", e)
+            logging.error(f"Error opening item {item}:", e)
+
 
 
 if __name__ == "__main__":
     app = QApplication([])
     logging.info("///// Init /////")
-    window = SystemTrayApp("D:\@Portable\[EXTRAFILES]\[shortcuts]")
-    sys.exit(app.exec())
+    try:
+        window = SystemTrayApp("D:\@Portable\[EXTRAFILES]\[shortcuts]")
+        sys.exit(app.exec())
+    except Exception as e:
+        logging.error("Error initializing application:", e)
