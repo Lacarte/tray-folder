@@ -1,0 +1,1 @@
+python D:\@Workspace\@Development\@Python\tray-folder\main.pyw
