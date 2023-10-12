@@ -227,8 +227,16 @@ if __name__ == "__main__":
     app = QApplication([])
     # Ensure app doesn't prematurely exit
     app.setQuitOnLastWindowClosed(False)
-    try:
-        window = SystemTrayApp("D:\@Portable\[EXTRAFILES]\[shortcuts]")
-        sys.exit(app.exec())
-    except Exception as e:
-        logging.error("Error initializing application:", e)
+
+    # Specify the path
+    folder_path = "D:\\@Portables\\[EXTRAFILES]\\[shortcuts]"
+
+    # Check if the directory exists
+    if not os.path.exists(folder_path):
+        logging.error(f"Directory not found: {folder_path} , Please fix or update...")
+    else:
+        try:
+            window = SystemTrayApp(folder_path)
+            sys.exit(app.exec())
+        except Exception as e:
+            logging.error("Error initializing application:", e)
