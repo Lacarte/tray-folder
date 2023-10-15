@@ -9,7 +9,9 @@ from PyQt6.QtWidgets import QLabel, QWidgetAction, QVBoxLayout, QWidget
 from PyQt6.QtGui import QIcon, QAction
 from PyQt6.QtCore import QPoint
 from PyQt6.QtCore import Qt, QEvent
+from PyQt6.QtGui import QPixmap
 from functools import partial
+from PyQt6.QtWidgets import QHBoxLayout
 
 
 # Create the "logs" directory if it doesn't exist
@@ -116,27 +118,30 @@ class SystemTrayApp(QMainWindow):
                                        
         """)
 
-        # Add title to the menu using QWidgetAction with a QLabel
         title_widget = QWidgetAction(self)
         # Disabling the action to make it unclickable
         title_widget.setDisabled(True)
 
         # Creating a custom widget for the title
         title_container = QWidget()
-        layout = QVBoxLayout()
-        label = QLabel("Tray-Folder")
+        layout = QHBoxLayout()  # Use QHBoxLayout for horizontal layout
 
-        # Adjusting font size and centering text
-        label.setStyleSheet(
-            "background-color: transparent; color: #EEE; padding: 1px; font-size: 12px;")
-        # This ensures the label is centered
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
+        # Adding the text
+        label = QLabel("TrayFolder")
+        label.setStyleSheet("background-color: transparent; color: white; padding: 1px; font-size: 12px;")
+        # ... (rest of the code for the label)
         layout.addWidget(label)
-        title_container.setLayout(layout)
 
+        # Adding the icon to the right
+        icon_label = QLabel()
+        icon_pixmap = QPixmap(resource_path("assets/title_icon.png"))
+        icon_label.setPixmap(icon_pixmap.scaled(16, 16, Qt.AspectRatioMode.KeepAspectRatio)) # Adjust the size as needed
+        layout.addWidget(icon_label, alignment=Qt.AlignmentFlag.AlignRight)
+
+        title_container.setLayout(layout)
         title_widget.setDefaultWidget(title_container)
         menu.addAction(title_widget)
+
         menu.addSeparator()
         logging.info(f"//scanning directory {self.folder_path}")
         try:
@@ -229,7 +234,7 @@ if __name__ == "__main__":
     app.setQuitOnLastWindowClosed(False)
 
     # Specify the path
-    folder_path = "D:\\@Portables\\[EXTRAFILES]\\[shortcuts]"
+    folder_path = "D:\\@Portable\\[EXTRAFILES]\\[shortcuts]"
 
     # Check if the directory exists
     if not os.path.exists(folder_path):
