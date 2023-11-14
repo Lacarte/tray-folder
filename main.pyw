@@ -16,44 +16,36 @@ from utils import resource_path
 from utils import is_link_broken
 from utils import is_link_to_directory
 
-# Create the "logs" directory if it doesn't exist
-try:
-    logs_path = resource_path("logs")
-    if not os.path.exists(logs_path):
-        os.makedirs(logs_path)
-except Exception as e:
-    print("Error creating 'logs' directory:", e)
 
-# Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler(
-            os.path.join(logs_path, f"log-{datetime.now().strftime('%Y-%m-%d')}.log"),
-            mode="w",
-        ),
-        logging.StreamHandler(),
-    ],
-)
+def setup_logging():
+    logs_path = create_directory("logs")
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.FileHandler(os.path.join(logs_path, f"log-{datetime.now().strftime('%Y-%m-%d')}.log"), mode="w"),
+            logging.StreamHandler(),
+        ],
+    )
 
+def create_directory(dir_name):
+    try:
+        path = resource_path(dir_name)
+        if not os.path.exists(path):
+            os.makedirs(path)
+        return path
+    except Exception as e:
+        logging.error(f"Error creating '{dir_name}' directory: {e}")
+        sys.exit(1)
 
 def get_folder_path_from_config():
     config = configparser.ConfigParser()
     config_path = resource_path("config.ini")
-
-    # Debugging: Print or log the path being checked
-    print(f"Looking for config.ini at: {config_path}")  # or use logging.info()
-
     if not os.path.exists(config_path):
-        raise FileNotFoundError("Oops! I couldn't find the 'config.ini' file. Did a kitten play with it? 🐱")
+        raise FileNotFoundError("config.ini file not found.")
 
     config.read(config_path)
-    # Rest of your code...
-    folder_path = config['Settings']['folder_path']
-    print(f"Retrieved folder path: {folder_path}")
-    return folder_path
-
+    return config.get('Settings', 'folder_path')
 
 class SystemTrayApp(QMainWindow):
 
@@ -61,8 +53,8 @@ class SystemTrayApp(QMainWindow):
         super().__init__()
         self.folder_path = folder_path
         self.icon_state = 0
-        self.icons = ["assets/up.png", "assets/up-open.png"]
         self.menu_visible = False
+        self.icons = ["assets/up.png", "assets/up-open.png"]
 
         # Hide main window
         self.hide()
@@ -244,19 +236,18 @@ class SystemTrayApp(QMainWindow):
 
 
 if __name__ == "__main__":
-    logging.info("... Init ...")
+    setup_logging()
     app = QApplication([])
-    # Ensure app doesn't prematurely exit
     app.setQuitOnLastWindowClosed(False)
 
-    folder_path = get_folder_path_from_config()
-    logging.info(f"Shortcut {folder_path}")
-    # Check if the directory exists
-    if not os.path.exists(folder_path):
-        logging.error(f"Directory {folder_path} not found, please fix or update SHORTCUT ...")
-    else:
-        try:
-            window = SystemTrayApp(folder_path)
-            sys.exit(app.exec())
-        except Exception as e:
-            logging.error("Error initializing application:", e)
+    try:
+        folder_path = get_folder_path_from_config()
+        if not os.path.exists(folder_path):
+            logging.error(f"Directory {folder_path} not found.")
+            sys.exit(1)
+
+        window = SystemTrayApp(folder_path)
+        sys.exit(app.exec())
+    except Exception as e:
+        logging.error(f"Error in main: {e}")
+        sys.exit(1)
