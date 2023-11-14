@@ -1,7 +1,6 @@
 import sys
 import os
 import subprocess
-import win32com.client
 from datetime import datetime
 import logging
 from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QMainWindow
@@ -14,7 +13,8 @@ from functools import partial
 from PyQt6.QtWidgets import QHBoxLayout
 import configparser
 from utils import resource_path
-
+from utils import is_link_broken
+from utils import is_link_to_directory
 
 
 # Create the "logs" directory if it doesn't exist
@@ -39,25 +39,6 @@ logging.basicConfig(
 )
 
 
-def resolve_link(lnk_path):
-    try:
-        shell = win32com.client.Dispatch("WScript.Shell")
-        shortcut = shell.CreateShortCut(lnk_path)
-        return shortcut.Targetpath
-    except Exception:
-
-        return None
-
-
-def is_link_broken(lnk_path):
-    target_path = resolve_link(lnk_path)
-    return target_path is None or not os.path.exists(target_path)
-
-
-def is_link_to_directory(lnk_path):
-    target_path = resolve_link(lnk_path)
-    return os.path.isdir(target_path)
-
 
 def get_folder_path_from_config():
     config = configparser.ConfigParser()
@@ -75,10 +56,6 @@ def get_folder_path_from_config():
     print(f"Retrieved folder path: {folder_path}")
     return folder_path
 
-
-# Example
-# lnk_file = r"C:\path\to\your\shortcut.lnk"
-# print(is_link_to_directory(lnk_file))
 
 class SystemTrayApp(QMainWindow):
 
@@ -239,11 +216,17 @@ class SystemTrayApp(QMainWindow):
         print(f"Attempting to open: {item_path}")  # or use logging.info()
      
         if not os.path.exists(item_path):
-         logging.error(f"Path does not exist: {item_path}")
-         return
-        
+            logging.error(f"{item_path} does not exist!")
+            return
+
+        if not os.path.isfile(item_path) and not os.path.isdir(item_path):
+            logging.error(f"{item_path} is not a valid file or folder")  
+            return
+  
         try:
-          subprocess.Popen(['explorer', item_path])
+        #   subprocess.Popen(['explorer', item_path])
+            full_path = os.path.abspath(item_path)
+            os.startfile(full_path)
         except Exception as e:
          logging.error("Error opening path:", e)
 

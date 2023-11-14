@@ -7,7 +7,7 @@
   
 ### To set venv to the project
 
-    python -m venv tray-folder\venv
+    python -m venv venv
 
   
 ### To activate venv 
