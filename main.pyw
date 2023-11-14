@@ -12,12 +12,16 @@ from PyQt6.QtCore import Qt, QEvent
 from PyQt6.QtGui import QPixmap
 from functools import partial
 from PyQt6.QtWidgets import QHBoxLayout
+import configparser
+from utils import resource_path
+
 
 
 # Create the "logs" directory if it doesn't exist
 try:
-    if not os.path.exists("logs"):
-        os.makedirs("logs")
+    logs_path = resource_path("logs")
+    if not os.path.exists(logs_path):
+        os.makedirs(logs_path)
 except Exception as e:
     print("Error creating 'logs' directory:", e)
 
@@ -27,23 +31,12 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
         logging.FileHandler(
-            f"logs/log-{datetime.now().strftime('%Y-%m-%d')}.log",
+            os.path.join(logs_path, f"log-{datetime.now().strftime('%Y-%m-%d')}.log"),
             mode="w",
         ),
         logging.StreamHandler(),
     ],
 )
-
-
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
 
 
 def resolve_link(lnk_path):
@@ -64,6 +57,23 @@ def is_link_broken(lnk_path):
 def is_link_to_directory(lnk_path):
     target_path = resolve_link(lnk_path)
     return os.path.isdir(target_path)
+
+
+def get_folder_path_from_config():
+    config = configparser.ConfigParser()
+    config_path = resource_path("config.ini")
+
+    # Debugging: Print or log the path being checked
+    print(f"Looking for config.ini at: {config_path}")  # or use logging.info()
+
+    if not os.path.exists(config_path):
+        raise FileNotFoundError("Oops! I couldn't find the 'config.ini' file. Did a kitten play with it? 🐱")
+
+    config.read(config_path)
+    # Rest of your code...
+    folder_path = config['Settings']['folder_path']
+    print(f"Retrieved folder path: {folder_path}")
+    return folder_path
 
 
 # Example
@@ -129,7 +139,6 @@ class SystemTrayApp(QMainWindow):
         # Adding the text
         label = QLabel("TrayFolder")
         label.setStyleSheet("background-color: transparent; color: white; padding: 1px; font-size: 12px;")
-        # ... (rest of the code for the label)
         layout.addWidget(label)
 
         # Adding the icon to the right
@@ -147,33 +156,39 @@ class SystemTrayApp(QMainWindow):
         try:
             for item in os.listdir(self.folder_path):
                 item_path = os.path.join(self.folder_path, item)
-                item_name_without_extension = os.path.splitext(item)[0]
+                if not os.path.exists(item_path):
+                    logging.info(f"item_path no exist {item_path}")
 
-                if item.endswith(".lnk"):
-                    # Checks if the shortcut points to a directory
-                    if is_link_to_directory(resource_path(item_path)):
-                        logging.info(f"link shorcut directory : {item_path}")
-                        icon_path = "assets/folder.png"  # or any other icon you'd prefer for file shortcuts
-                    else:
-                        if is_link_broken(resource_path(item_path)):
-                            logging.info(f"broken shorcut file : {item_path}")
-                            icon_path = "assets/broken_shortcut.png"
+                else :
+                    item_name_without_extension = os.path.splitext(item)[0]
+
+                    if item.endswith(".lnk"):
+                        # Checks if the shortcut points to a directory
+                        if is_link_to_directory(resource_path(item_path)):
+                            logging.info(f"link shorcut directory : {item_path}")
+                            icon_path = "assets/folder.png"  # or any other icon you'd prefer for file shortcuts
                         else:
-                            logging.info(f"link shorcut file : {item_path}")
-                            icon_path = "assets/circle.png"  # or any other icon you'd prefer for file shortcuts
+                            if is_link_broken(resource_path(item_path)):
+                                logging.info(f"broken shorcut file : {item_path}")
+                                icon_path = "assets/broken_shortcut.png"
+                            else:
+                                logging.info(f"link shorcut file : {item_path}")
+                                icon_path = "assets/circle.png"  # or any other icon you'd prefer for file shortcuts
 
-                elif os.path.isdir(resource_path(item_path)):
-                    logging.info(f"real directory not file : {item_path}")
-                    icon_path = "assets/folder.png"
-                else:
-                    logging.info(f"real file : {item_path}")
-                    icon_path = "assets/circle.png"
+                    elif os.path.isdir(resource_path(item_path)):
+                        logging.info(f"is real directory not a file : {item_path}")
+                        icon_path = "assets/folder.png"
+                    else:
+                        logging.info(f"real file : {item_path}")
+                        icon_path = "assets/circle.png"
 
-                item_action = QAction(QIcon(resource_path(icon_path)), item_name_without_extension, self)
-                item_action.setToolTip(f"Open {item_name_without_extension}")
-                item_action.triggered.connect(partial(self.open_item, item))
-                menu.addAction(item_action)
-            menu.addSeparator()
+                    item_action = QAction(QIcon(resource_path(icon_path)), item_name_without_extension, self)
+                    item_action.setToolTip(f"Open {item_name_without_extension}")
+                    logging.info(f"item : {item}")
+                    item_action.triggered.connect(partial(self.open_item, item))
+                    logging.info(f"item_action : {item_action}")
+                    menu.addAction(item_action)
+                menu.addSeparator()
         except Exception as e:
             logging.error(
                 f"Error listing items in directory {self.folder_path}:", e)
@@ -220,11 +235,17 @@ class SystemTrayApp(QMainWindow):
 
     def open_item(self, item):
         logging.info(f"before opening the item")
+        item_path = os.path.join(self.folder_path, item)
+        print(f"Attempting to open: {item_path}")  # or use logging.info()
+     
+        if not os.path.exists(item_path):
+         logging.error(f"Path does not exist: {item_path}")
+         return
+        
         try:
-            logging.info(f"opening item : {os.path.join(self.folder_path, item)}")
-            subprocess.Popen(['explorer', os.path.join(self.folder_path, item)])
+          subprocess.Popen(['explorer', item_path])
         except Exception as e:
-            logging.error(f"Error opening item {item}:", e)
+         logging.error("Error opening path:", e)
 
 
 if __name__ == "__main__":
@@ -233,9 +254,8 @@ if __name__ == "__main__":
     # Ensure app doesn't prematurely exit
     app.setQuitOnLastWindowClosed(False)
 
-    # Specify the path
-    folder_path = "D:\\@Portable\\[EXTRAFILES]\\[shortcuts]"
-
+    folder_path = get_folder_path_from_config()
+    logging.info(f"Shortcut {folder_path}")
     # Check if the directory exists
     if not os.path.exists(folder_path):
         logging.error(f"Directory not found: {folder_path} , Please fix or update...")
