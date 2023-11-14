@@ -116,26 +116,28 @@ class SystemTrayApp(QMainWindow):
 
         menu.addSeparator()
         logging.info(f"//scanning directory {self.folder_path}")
+      
         try:
             for item in os.listdir(self.folder_path):
                 item_path = os.path.join(self.folder_path, item)
                 if not os.path.exists(item_path):
                     logging.info(f"item_path no exist {item_path}")
-                else :
+                else:
                     item_name_without_extension = os.path.splitext(item)[0]
 
+                    # Initialize variable to track if the link is broken
+                    is_broken_link = False
+
                     if item.endswith(".lnk"):
-                        # Checks if the shortcut points to a directory
+                        # Check if the shortcut points to a directory or if it's broken
                         if is_link_to_directory(resource_path(item_path)):
-                            logging.info(f"link shorcut directory : {item_path}")
-                            icon_path = "assets/folder.png"  # or any other icon you'd prefer for file shortcuts
+                            icon_path = "assets/folder.png"
                         else:
                             if is_link_broken(resource_path(item_path)):
-                                logging.info(f"broken shorcut file : {item_path}")
+                                is_broken_link = True
                                 icon_path = "assets/broken_shortcut.png"
                             else:
-                                logging.info(f"link shorcut file : {item_path}")
-                                icon_path = "assets/circle.png"  # or any other icon you'd prefer for file shortcuts
+                                icon_path = "assets/circle.png"
 
                     elif os.path.isdir(resource_path(item_path)):
                         logging.info(f"is real directory not a file : {item_path}")
@@ -151,10 +153,15 @@ class SystemTrayApp(QMainWindow):
 
                     item_action = QAction(QIcon(resource_path(icon_path)), item_name_without_extension, self)
                     item_action.setToolTip(f"Open {item_name_without_extension}")
-                    item_action.triggered.connect(make_item_action_triggered(item))
-                    logging.info(f"item_action : {item_action}")
+                    
+                    # If the link is broken, disable the action
+                    if is_broken_link:
+                        item_action.setDisabled(True)
+                    else:
+                        item_action.triggered.connect(make_item_action_triggered(item))
                     menu.addAction(item_action)
                 menu.addSeparator()
+                
         except Exception as e:
             logging.error(
                 f"Error listing items in directory {self.folder_path}:", e)
