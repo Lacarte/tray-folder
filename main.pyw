@@ -16,7 +16,6 @@ from utils import resource_path
 from utils import is_link_broken
 from utils import is_link_to_directory
 
-
 # Create the "logs" directory if it doesn't exist
 try:
     logs_path = resource_path("logs")
@@ -37,7 +36,6 @@ logging.basicConfig(
         logging.StreamHandler(),
     ],
 )
-
 
 
 def get_folder_path_from_config():
@@ -135,7 +133,6 @@ class SystemTrayApp(QMainWindow):
                 item_path = os.path.join(self.folder_path, item)
                 if not os.path.exists(item_path):
                     logging.info(f"item_path no exist {item_path}")
-
                 else :
                     item_name_without_extension = os.path.splitext(item)[0]
 
@@ -159,10 +156,14 @@ class SystemTrayApp(QMainWindow):
                         logging.info(f"real file : {item_path}")
                         icon_path = "assets/circle.png"
 
+                    def make_item_action_triggered(item_name):
+                        def item_action_triggered():
+                            self.open_item(item_name)
+                        return item_action_triggered
+
                     item_action = QAction(QIcon(resource_path(icon_path)), item_name_without_extension, self)
                     item_action.setToolTip(f"Open {item_name_without_extension}")
-                    logging.info(f"item : {item}")
-                    item_action.triggered.connect(partial(self.open_item, item))
+                    item_action.triggered.connect(make_item_action_triggered(item))
                     logging.info(f"item_action : {item_action}")
                     menu.addAction(item_action)
                 menu.addSeparator()
@@ -178,14 +179,17 @@ class SystemTrayApp(QMainWindow):
 
 
     def eventFilter(self, source, event):
-        if (event.type() == QEvent.Type.Close and isinstance(source, QMenu)):
-            # Reset icon and menu_visible flag
-            self.icon_state = 0
-            self.tray_icon.setIcon(QIcon(resource_path(self.icons[self.icon_state])))
-            self.menu_visible = False
-            # Clearing the context menu for good measure
-            self.tray_icon.setContextMenu(None)
+        # Check if the source is the menu and the event is a close event
+        if isinstance(source, QMenu) and event.type() == QEvent.Type.Close:
+            # Reset icon and menu_visible flag only if the menu is currently visible
+            if self.menu_visible:
+                self.icon_state = 0
+                self.tray_icon.setIcon(QIcon(resource_path(self.icons[self.icon_state])))
+                self.menu_visible = False
+            return True  # Indicate that the event was handled
+        # For all other cases, call the base class implementation
         return super(SystemTrayApp, self).eventFilter(source, event)
+
 
 
     def on_tray_icon_activated(self, reason):
@@ -211,6 +215,7 @@ class SystemTrayApp(QMainWindow):
 
 
     def open_item(self, item):
+
         logging.info(f"before opening the item")
         item_path = os.path.join(self.folder_path, item)
         print(f"Attempting to open: {item_path}")  # or use logging.info()
@@ -224,9 +229,16 @@ class SystemTrayApp(QMainWindow):
             return
   
         try:
-        #   subprocess.Popen(['explorer', item_path])
+            self.icon_state = 0
+            self.tray_icon.setIcon(QIcon(resource_path(self.icons[self.icon_state])))
+            self.menu_visible = False
+            # Clearing the context menu for good measure
+            self.tray_icon.setContextMenu(None)
+            # Opening file or folder
+            # subprocess.Popen(['explorer', item_path])
             full_path = os.path.abspath(item_path)
             os.startfile(full_path)
+
         except Exception as e:
          logging.error("Error opening path:", e)
 
@@ -241,7 +253,7 @@ if __name__ == "__main__":
     logging.info(f"Shortcut {folder_path}")
     # Check if the directory exists
     if not os.path.exists(folder_path):
-        logging.error(f"Directory not found: {folder_path} , Please fix or update...")
+        logging.error(f"Directory {folder_path} not found, please fix or update SHORTCUT ...")
     else:
         try:
             window = SystemTrayApp(folder_path)
