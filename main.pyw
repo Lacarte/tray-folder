@@ -1,20 +1,16 @@
 import sys
 import os
-import subprocess
 from datetime import datetime
 import logging
 from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QMainWindow
-from PyQt6.QtWidgets import QLabel, QWidgetAction, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QLabel, QWidgetAction, QWidget
 from PyQt6.QtGui import QIcon, QAction
 from PyQt6.QtCore import QPoint
 from PyQt6.QtCore import Qt, QEvent
 from PyQt6.QtGui import QPixmap
-from functools import partial
 from PyQt6.QtWidgets import QHBoxLayout
 import configparser
-from utils import resource_path
-from utils import is_link_broken
-from utils import is_link_to_directory
+from utils import resource_path, is_link_broken, is_link_to_directory
 
 
 def setup_logging():
@@ -226,6 +222,7 @@ class SystemTrayApp(QMainWindow):
             self.menu_visible = False
             # Clearing the context menu for good measure
             self.tray_icon.setContextMenu(None)
+            
             # Opening file or folder
             # subprocess.Popen(['explorer', item_path])
             full_path = os.path.abspath(item_path)
