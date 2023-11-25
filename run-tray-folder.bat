@@ -2,9 +2,9 @@
 pushd %~dp0
 
 :: Check if venv exists
-IF EXIST venv (
-    :: Change to the venv's Scripts directory
-    pushd venv\Scripts
+IF EXIST .venv (
+    :: Change to the .venv's Scripts directory
+    pushd .venv\Scripts
     
     :: Run your script using this venv's python.exe
     python.exe ../../main.pyw

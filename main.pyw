@@ -95,14 +95,23 @@ class SystemTrayApp(QMainWindow):
         # Disabling the action to make it unclickable
         title_widget.setDisabled(True)
 
-        # Creating a custom widget for the title
-        title_container = QWidget()
-        layout = QHBoxLayout()  # Use QHBoxLayout for horizontal layout
+        title_widget = QWidgetAction(self)
+        title_widget.setDisabled(True)
 
-        # Adding the text
+        title_container = QWidget()
+        layout = QHBoxLayout()  # Using QHBoxLayout for horizontal layout
+
+        layout.addStretch(1)  # Add stretch before the label to push it towards center
+
         label = QLabel("TrayFolder")
         label.setStyleSheet("background-color: transparent; color: white; padding: 1px; font-size: 12px;")
-        layout.addWidget(label)
+        layout.addWidget(label, alignment=Qt.AlignmentFlag.AlignCenter)  # Set alignment to center
+
+        layout.addStretch(1)  # Add stretch after the label to maintain center alignment
+
+        title_container.setLayout(layout)
+        title_widget.setDefaultWidget(title_container)
+        menu.addAction(title_widget)
 
         # Adding the icon to the right
         icon_label = QLabel()
@@ -166,6 +175,17 @@ class SystemTrayApp(QMainWindow):
             logging.error(
                 f"Error listing items in directory {self.folder_path}:", e)
 
+
+     # Add custom folder path action before Quit action
+        folder_name = os.path.basename(self.folder_path)
+        folder_icon_path = "assets/folder.png"
+        folder_action = QAction(QIcon(resource_path(folder_icon_path)), folder_name, self)
+        folder_action.setToolTip(f"Open {self.folder_path}")
+        folder_action.triggered.connect(lambda: self.open_item(folder_name))
+        menu.addAction(folder_action)
+
+        menu.addSeparator()
+
         quit_action = QAction(QIcon(resource_path("assets/exit.png")), "Quit", self)
         quit_action.setToolTip("Close the application")
         quit_action.triggered.connect(app.quit)
@@ -211,8 +231,12 @@ class SystemTrayApp(QMainWindow):
 
     def open_item(self, item):
 
-        logging.info(f"before opening the item")
         item_path = os.path.join(self.folder_path, item)
+        logging.info(f"before opening the item")
+        
+        if item == os.path.basename(self.folder_path):
+            item_path = self.folder_path
+        
         print(f"Attempting to open: {item_path}")  # or use logging.info()
      
         if not os.path.exists(item_path):
