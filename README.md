@@ -4,7 +4,7 @@
   
 ### To set venv() to the .venv directory 
 
-    python -m venv ./venv
+    python -m venv ./.venv
 
   
 ### To activate venv 
