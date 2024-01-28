@@ -19,7 +19,7 @@
 
   
 ### To backup libraries
-#### Only top dependencies -->
+#### Only top dependencies 
     pip install pipdeptree
      
     pipdeptree -f --warn silence | findstr  /r  "^[a-zA-Z0-9\-]" > requirements.txt
