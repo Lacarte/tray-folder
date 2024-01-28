@@ -19,8 +19,7 @@
 
   
 ### To backup libraries
-
-    <!-- Only top dependencies -->
+#### Only top dependencies -->
     pip install pipdeptree
      
     pipdeptree -f --warn silence | findstr  /r  "^[a-zA-Z0-9\-]" > requirements.txt
@@ -31,6 +30,11 @@
 ### To install libraries
 
     pip install -r requirements.txt
+
+
+### To convert as executable
+pip install pyinstaller
+
 
 # Python Code Explanation: System Tray Application
 
