@@ -1,3 +1,6 @@
-PyQt6==6.5.2
+pip==23.3.2
+pipdeptree==2.13.2
+pyqt6-tools==6.4.2.3.3
 pytest-qt==4.2.0
 pywin32==306
+setuptools==65.5.0
